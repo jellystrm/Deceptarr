@@ -364,6 +364,20 @@ def build_releases(settings: Settings, query: dict[str, list[str]]) -> list[Gate
                 for lbl in lbls
             ]
 
+    # ── torznab_max_servers: limit server variants per source ─────────────────
+    # When set to N > 0, keep only the top N server labels per source so the
+    # download client doesn't receive dozens of duplicate grab entries.
+    _max_srv = settings.torznab_max_servers
+    if _max_srv and _max_srv > 0 and not settings.torznab_group_sources:
+        seen_src_count: dict[str | None, int] = {}
+        _filtered: list[tuple[str | None, str]] = []
+        for src, lbl in src_server_pairs:
+            cnt = seen_src_count.get(src, 0)
+            if cnt < _max_srv:
+                _filtered.append((src, lbl))
+                seen_src_count[src] = cnt + 1
+        src_server_pairs = _filtered
+
     # ── Season expansion: when season given but no specific episode,
     #    expand to per-episode results so Sonarr tracks each episode individually.
     episode_numbers: list[int | None] = [episode]
@@ -374,10 +388,19 @@ def build_releases(settings: Settings, query: dict[str, list[str]]) -> list[Gate
             episode_numbers = ep_list  # type: ignore[assignment]
             expanded = True
 
+    # ── torznab_release_type: control what result types are included ──────────
+    # "episodes"    – only per-episode results (default; season packs can't be
+    #                 processed by the download client so they always fail)
+    # "season_pack" – only season-pack entries (episode_number=None)
+    # "both"        – legacy: season pack at top + all per-episode entries
+    release_type = (settings.torznab_release_type or "episodes").lower()
+    want_season_pack = release_type in ("season_pack", "both")
+    want_episodes    = release_type in ("episodes",    "both")
+
     releases: list[GatewayRelease] = []
 
-    # ── Season pack items (at the top): one per (source × server_label × mode)
-    if kind == "episode" and season is not None and episode is None:
+    # ── Season pack items: one per (source × server_label × mode) ────────────
+    if want_season_pack and kind == "episode" and season is not None and episode is None:
         for source_name, server_label in src_server_pairs:
             for mode in modes:
                 releases.append(
@@ -397,32 +420,33 @@ def build_releases(settings: Settings, query: dict[str, list[str]]) -> list[Gate
                     )
                 )
 
-    # ── Per-episode items (sorted by episode first)
-    for ep_num in episode_numbers:
-        # Skip None placeholder ONLY when a season was specified — that case is
-        # already covered by the season-pack block above.
-        # When season is also None (pure title/test search), allow ep_num=None
-        # so at least one result is returned (needed for Sonarr indexer test).
-        if kind == "episode" and ep_num is None and season is not None:
-            continue  # season pack handled above; skip the placeholder
-        for source_name, server_label in src_server_pairs:
-            for mode in modes:
-                releases.append(
-                    GatewayRelease(
-                        title=title,
-                        kind=kind,  # type: ignore[arg-type]
-                        output_mode=mode,
-                        source_name=source_name,
-                        query=q or title,
-                        year=year,
-                        tmdb_id=tmdb_id,
-                        imdb_id=imdb_id,
-                        tvdb_id=tvdb_id,
-                        season_number=season,
-                        episode_number=ep_num,
-                        server_label=server_label,
+    # ── Per-episode items (sorted by episode first) ───────────────────────────
+    if want_episodes:
+        for ep_num in episode_numbers:
+            # Skip None placeholder ONLY when a season was specified — that case is
+            # already covered by the season-pack block above.
+            # When season is also None (pure title/test search), allow ep_num=None
+            # so at least one result is returned (needed for Sonarr indexer test).
+            if kind == "episode" and ep_num is None and season is not None:
+                continue  # season pack handled above; skip the placeholder
+            for source_name, server_label in src_server_pairs:
+                for mode in modes:
+                    releases.append(
+                        GatewayRelease(
+                            title=title,
+                            kind=kind,  # type: ignore[arg-type]
+                            output_mode=mode,
+                            source_name=source_name,
+                            query=q or title,
+                            year=year,
+                            tmdb_id=tmdb_id,
+                            imdb_id=imdb_id,
+                            tvdb_id=tvdb_id,
+                            season_number=season,
+                            episode_number=ep_num,
+                            server_label=server_label,
+                        )
                     )
-                )
     return releases
 
 

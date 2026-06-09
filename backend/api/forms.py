@@ -207,6 +207,8 @@ def form_to_config(form: dict[str, str], current: Settings) -> dict[str, Any]:
         data["torznab_api_key"] = form.get("torznab_api_key", current.torznab_api_key)
         data["public_base_url"] = form.get("public_base_url", current.public_base_url).strip().rstrip("/")
         data["torznab_group_sources"] = "torznab_group_sources" in form
+        data["torznab_release_type"] = form.get("torznab_release_type", current.torznab_release_type).strip() or "episodes"
+        data["torznab_max_servers"] = integer("torznab_max_servers", current.torznab_max_servers)
         return data
 
     if section == "downloader":

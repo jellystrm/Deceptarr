@@ -294,6 +294,11 @@ class Settings:
     log_level: str = "INFO"
     job_detail_retention_hours: int = 24
     torznab_group_sources: bool = False
+    # "episodes" = only per-episode results (recommended; season packs can't be processed)
+    # "season_pack" = only season-pack results | "both" = legacy behaviour
+    torznab_release_type: str = "episodes"
+    # Max server/variant rows per source in Torznab results (0 = unlimited)
+    torznab_max_servers: int = 0
     source_order: list[str] = field(default_factory=lambda: ["kkphim", "ophim", "nguonc"])
     # Variant (dub) priority — server label matched at grab time
     variant_order: list[str] = field(default_factory=lambda: ["Vietsub", "Lồng tiếng", "Thuyết minh"])
@@ -505,6 +510,8 @@ class Settings:
             log_level=str(_file_value(file_data, "log_level", "INFO")),
             job_detail_retention_hours=int(_file_value(file_data, "job_detail_retention_hours", 24)),
             torznab_group_sources=bool(_file_value(file_data, "torznab_group_sources", False)),
+            torznab_release_type=str(_file_value(file_data, "torznab_release_type", "episodes")),
+            torznab_max_servers=int(_file_value(file_data, "torznab_max_servers", 0)),
             source_order=source_order,
             variant_order=variant_order,
             type_order=type_order,
@@ -565,6 +572,8 @@ class Settings:
             "log_level": self.log_level,
             "job_detail_retention_hours": self.job_detail_retention_hours,
             "torznab_group_sources": self.torznab_group_sources,
+            "torznab_release_type": self.torznab_release_type,
+            "torznab_max_servers": self.torznab_max_servers,
             "source_order": self.source_order,
             "variant_order": self.variant_order,
             "type_order": self.type_order,

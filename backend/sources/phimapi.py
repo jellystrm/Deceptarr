@@ -244,7 +244,7 @@ class PhimApiSource(Source):
                         f"search candidate accepted: {item.get('name')!r} slug={item.get('slug')!r} "
                         f"score={s} detected_season={detected_s}"
                     )
-                    hit = _try_slug(item.get("slug"), detected_s)
+                    hit = _try_slug(item.get("slug"), detected_s or episode.season_number)
                     if hit:
                         return hit
                 else:
@@ -441,6 +441,18 @@ class PhimApiSource(Source):
                         prev_total = _tvmaze_info.cumulative.get(tvs.season_number, prev_total)
             except Exception:
                 pass
+
+        # Fallback: compute abs-ep from TMDB season info when TVMaze is unavailable.
+        # Enables correct S02E01 → Tập 11 mapping for flat-numbered sources (no TVMaze needed).
+        if _expected_abs is None and season > 1 and tmdb_info.seasons:
+            _prev = 0
+            for _s in sorted(tmdb_info.seasons, key=lambda x: x.season_number):
+                if _s.season_number == 0:
+                    continue  # skip season 0 (specials)
+                if _s.season_number == season:
+                    _expected_abs = _prev + episode
+                    break
+                _prev += _s.episode_count
 
         seen_keys: set[tuple[str, int | None, str]] = set()
         hits: list[SourceHit] = []

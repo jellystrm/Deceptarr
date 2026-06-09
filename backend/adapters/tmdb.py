@@ -37,11 +37,14 @@ class TmdbSeriesInfo:
 class TmdbClient:
     def __init__(self, api_key: str) -> None:
         self.api_key = api_key
+        self._is_bearer = api_key.startswith("eyJ")  # v4 Read Access Token
         self.session = requests.Session()
-        self.session.headers.update({
-            "Accept": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        })
+        headers: dict[str, str] = {"Accept": "application/json"}
+        if self._is_bearer:
+            headers["Authorization"] = f"Bearer {api_key}"
+        else:
+            self.session.params.update({"api_key": api_key})  # type: ignore[union-attr]
+        self.session.headers.update(headers)
 
     @property
     def enabled(self) -> bool:

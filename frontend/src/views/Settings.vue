@@ -429,6 +429,20 @@
             <label>Public Base URL</label>
             <input class="input mono" v-model="cfg.public_base_url" placeholder="http://deceptarr:8765" />
           </div>
+          <div class="field">
+            <label>Release type</label>
+            <select class="input" v-model="cfg.torznab_release_type">
+              <option value="episodes">Episodes only (recommended)</option>
+              <option value="season_pack">Season pack only</option>
+              <option value="both">Both</option>
+            </select>
+            <p class="hint-text">Controls what Sonarr sees in search results. "Episodes only" is recommended — season packs cannot be processed by the download client.</p>
+          </div>
+          <div class="field">
+            <label>Max servers per source <span class="hint">0 = unlimited</span></label>
+            <input class="input mono" v-model.number="cfg.torznab_max_servers" type="number" min="0" />
+            <p class="hint-text">Limit how many server variants each source exposes per release. Set to 1 to push only the top-ranked server to the download client.</p>
+          </div>
         </div>
       </div>
       <div class="fcard-foot">
@@ -601,7 +615,7 @@ const SECTION_FIELDS: Record<string, string[]> = {
   schedule: ['movie_enabled', 'movie_poll_interval_seconds', 'movie_max_items_per_poll',
              'series_enabled', 'series_poll_interval_seconds', 'series_max_items_per_poll', 'auto_grab'],
   output:   [],
-  indexer:  ['public_base_url'],
+  indexer:  ['public_base_url', 'torznab_release_type', 'torznab_max_servers'],
   dlclient: ['ui_host', 'ui_port', 'qb_username', 'qb_password', 'download_root',
              'retry_after_seconds', 'job_detail_retention_hours',
              'download_container', 'import_mode', 'ffmpeg_path', 'ffmpeg_extra_args'],
